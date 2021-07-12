@@ -1,0 +1,17 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Don't use tabs for indentation.
+[*]
+indent_style = space
+charset = utf-8
+# (Please don't specify an indent_size here; that has too many unintended consequences.)
+
+# Code files
+[*.{h,hpp,c,cpp,inl}]
+indent_size = 4
+
+[*.yml]
+indent_size = 2

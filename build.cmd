@@ -1,0 +1,1 @@
+%TM_SDK_DIR%\bin\tmbuild.exe --no-unit-test
