@@ -45,6 +45,13 @@ filter "configurations:Release"
     defines { "TM_CONFIGURATION_RELEASE" }
     optimize "On"
 
+project "simple-triangle-dll"
+    location "build/simple_triangle_dll"
+    kind "SharedLib"
+    files { "samples/simple_triangle/simple_triangle.h", "samples/simple_triangle/simple_triangle.c", "samples/simple_triangle/shaders/**.tmsl" }
+    filter "platforms:Win64"
+        links { "Shcore.lib" }
+
 project "simple-triangle-exe"
     location "build/simple_triangle_exe"
     targetname "simple-triangle"
@@ -56,13 +63,6 @@ project "simple-triangle-exe"
     links { "foundation" }
 
 --[[
-project "simple-triangle-dll"
-    location "build/simple_triangle_dll"
-    kind "SharedLib"
-    files { "simple_triangle/**.h", "simple_triangle/**.c", "simple_triangle/shaders/**.tmsl" }
-    filter "platforms:Win64"
-        links { "Shcore.lib" }
-
 project "simple-triangle-exe"
     location "build/simple_triangle_exe"
     targetname "simple-triangle"
