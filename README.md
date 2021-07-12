@@ -5,7 +5,8 @@
 ## BUILD
 
 * Set %TM_SDK_DIR% to the directory of [The Machinery SDK][1]
-* `%TM_SDK_DIR%\bin\tmbuild.exe`, have fun!
+* run `build.cmd`
+* run `bin\simple-triangle.exe`, have fun!
 
 
 
