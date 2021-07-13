@@ -55,12 +55,15 @@ project "simple-triangle-dll"
 project "simple-triangle-exe"
     location "build/simple_triangle_exe"
     targetname "simple-triangle"
-    targetdir "bin/%{cfg.buildcfg}"
     kind "ConsoleApp"
     defines { "TM_LINKS_FOUNDATION", "TM_LINKS_HOST" }
-    -- dependson { "simple-3d-dll" }
+    dependson { "simple-3d-dll" }
     files { "samples/simple_triangle/host.c" }
     links { "foundation" }
+    filter { "platforms:Win64" }
+        postbuildcommands {
+            '{COPY} "%TM_SDK_DIR%/bin/plugins" ../../bin/%{cfg.buildcfg}/plugins'
+        }
 
 --[[
 project "simple-triangle-exe"
