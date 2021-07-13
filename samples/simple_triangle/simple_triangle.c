@@ -1,6 +1,7 @@
 struct tm_api_registry_api *tm_global_api_registry;
 
 struct tm_allocator_api *tm_allocator_api;
+struct tm_error_api *tm_error_api;
 struct tm_localizer_api *tm_localizer_api;
 struct tm_logger_api *tm_logger_api;
 struct tm_os_api *tm_os_api;
@@ -10,6 +11,11 @@ struct tm_temp_allocator_api *tm_temp_allocator_api;
 
 struct tm_os_window_api *tm_os_window_api;
 struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
+struct tm_renderer_init_api *tm_renderer_init_api;
+struct tm_vulkan_api *tm_vulkan_api;
+
+struct tm_renderer_command_buffer_api *tm_cmd_buf_api;
+struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;
 
 
 #include "simple_triangle.h"
@@ -18,6 +24,7 @@ struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 #include <foundation/allocator.h>
 #include <foundation/application.h>
 #include <foundation/carray.inl>
+#include <foundation/error.h>
 #include <foundation/localizer.h>
 #include <foundation/log.h>
 #include <foundation/os.h>
@@ -28,6 +35,11 @@ struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 
 #include <plugins/dxc_shader_compiler/dxc_compiler.h>
 #include <plugins/os_window/os_window.h>
+#include <plugins/renderer/nil_render_backend.h>
+#include <plugins/renderer/render_backend.h>
+// #include <plugins/renderer/render_command_buffer.h>
+#include <plugins/renderer/renderer.h>
+#include <plugins/vulkan_render_backend/vulkan_render_backend.h>
 
 #if defined(TM_OS_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
@@ -44,9 +56,31 @@ struct tm_application_o
 {
     struct tm_allocator_i allocator;
 
+    struct tm_vulkan_backend_i *vulkan_backend;
+    struct tm_renderer_backend_i *render_backend;
+    uint32_t device_affinity;
+    TM_PAD(4);
+
     struct window_t window;
 };
 
+
+static void
+init_renderer_plugin(struct tm_allocator_i *allocator)
+{
+    const uint64_t user_data_size = 8 * 1024;
+    tm_renderer_init_api->init(allocator, user_data_size);
+
+    struct tm_renderer_api *tm_renderer_api = tm_global_api_registry->get(TM_RENDERER_API_NAME);
+    tm_cmd_buf_api = tm_renderer_api->tm_renderer_command_buffer_api;
+    tm_res_buf_api = tm_renderer_api->tm_renderer_resource_command_buffer_api;
+}
+
+static void
+shutdown_renderer_plugin(void)
+{
+    tm_renderer_init_api->shutdown();
+}
 
 static bool
 tick_application(struct tm_application_o *app)
@@ -85,6 +119,35 @@ setup_initial_window(struct tm_application_o *app, void *res_buf)
 {
     tm_rect_t rect = { 100, 100, 1440, 900 };
     create_window(app, res_buf, rect, true);
+}
+
+static void
+setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
+{
+    if (!tm_vulkan_api->create_backend)
+    {
+        struct tm_nil_renderer_backend_api *tm_nil_renderer_backend_api = tm_global_api_registry->get(TM_NIL_RENDER_BACKEND_API_NAME);
+        app->render_backend = tm_nil_renderer_backend_api->create(&app->allocator);
+        return;
+    }
+
+    // Creates Vulkan backend, sets up host memory allocator and enumerates available vulkan instance layers and externsions.
+    app->vulkan_backend = tm_vulkan_api->create_backend(&app->allocator, tm_error_api->def);
+}
+
+static void
+shutdown_render_backend(struct tm_application_o *app)
+{
+    if (!app->vulkan_backend)
+    {
+        struct tm_nil_renderer_backend_api *tm_nil_renderer_backend_api = tm_global_api_registry->get(TM_NIL_RENDER_BACKEND_API_NAME);
+        tm_nil_renderer_backend_api->destroy(app->render_backend);
+    }
+
+    app->vulkan_backend->destroy_devices(app->vulkan_backend->inst, &app->device_affinity, 1);
+    app->vulkan_backend->shutdown(app->vulkan_backend->inst);
+
+    tm_vulkan_api->destroy_backend(app->vulkan_backend);
 }
 
 static tm_application_o *
@@ -127,6 +190,16 @@ create_application(int argc, char **argv)
         .allocator = a,
     };
 
+    // Initialize the render plugin, setup APIs
+    init_renderer_plugin(&app->allocator);
+
+    // Initialize and setup the truth
+    // TODO
+
+    // Setup render backend and create device
+    const bool vulkan_validation = false;
+    setup_render_backend(app, vulkan_validation);
+
     // Setup DXC Shader compiler
     tm_dxc_shader_compiler_api->init();
 
@@ -140,6 +213,8 @@ static void
 destroy_application(struct tm_application_o *app)
 {
     tm_dxc_shader_compiler_api->shutdown();
+
+    shutdown_renderer_plugin();
 
     struct tm_allocator_i a = app->allocator;
     tm_free(&a, app, sizeof(*app));
@@ -158,6 +233,7 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
 
     // foundation apis
     tm_allocator_api           = reg->get(TM_ALLOCATOR_API_NAME);
+    tm_error_api               = reg->get(TM_ERROR_API_NAME);
     tm_localizer_api           = reg->get(TM_LOCALIZER_API_NAME);
     tm_logger_api              = reg->get(TM_LOGGER_API_NAME);
     tm_os_api                  = reg->get(TM_OS_API_NAME);
@@ -168,6 +244,8 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
     // other plugin apis
     tm_dxc_shader_compiler_api = reg->get(TM_DXC_SHADER_COMPILER_API_NAME);
     tm_os_window_api           = reg->get(TM_OS_WINDOW_API_NAME);
+    tm_renderer_init_api       = reg->get(TM_RENDERER_INIT_API_NAME);
+    tm_vulkan_api              = reg->get(TM_VULKAN_API_NAME);
 
     tm_set_or_remove_api(reg, load, TM_APPLICATION_API_NAME, tm_application_api);
 }
