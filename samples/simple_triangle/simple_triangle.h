@@ -13,3 +13,4 @@ extern struct tm_plugins_api *tm_plugins_api;
 extern struct tm_temp_allocator_api *tm_temp_allocator_api;
 
 extern struct tm_os_window_api *tm_os_window_api;
+extern struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;

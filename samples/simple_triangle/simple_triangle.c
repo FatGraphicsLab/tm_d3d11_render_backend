@@ -9,6 +9,7 @@ struct tm_plugins_api *tm_plugins_api;
 struct tm_temp_allocator_api *tm_temp_allocator_api;
 
 struct tm_os_window_api *tm_os_window_api;
+struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 
 
 #include "simple_triangle.h"
@@ -25,6 +26,7 @@ struct tm_os_window_api *tm_os_window_api;
 #include <foundation/string.inl>
 #include <foundation/temp_allocator.h>
 
+#include <plugins/dxc_shader_compiler/dxc_compiler.h>
 #include <plugins/os_window/os_window.h>
 
 #if defined(TM_OS_WINDOWS)
@@ -125,6 +127,9 @@ create_application(int argc, char **argv)
         .allocator = a,
     };
 
+    // Setup DXC Shader compiler
+    tm_dxc_shader_compiler_api->init();
+
     // Create default window and initialize swap chain.
     setup_initial_window(app, (void*)0);
 
@@ -134,6 +139,8 @@ create_application(int argc, char **argv)
 static void
 destroy_application(struct tm_application_o *app)
 {
+    tm_dxc_shader_compiler_api->shutdown();
+
     struct tm_allocator_i a = app->allocator;
     tm_free(&a, app, sizeof(*app));
     tm_allocator_api->destroy_child(&a);
@@ -150,16 +157,17 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
     tm_global_api_registry = reg;
 
     // foundation apis
-    tm_allocator_api      = reg->get(TM_ALLOCATOR_API_NAME);
-    tm_localizer_api      = reg->get(TM_LOCALIZER_API_NAME);
-    tm_logger_api         = reg->get(TM_LOGGER_API_NAME);
-    tm_os_api             = reg->get(TM_OS_API_NAME);
-    tm_path_api           = reg->get(TM_PATH_API_NAME);
-    tm_plugins_api        = reg->get(TM_PLUGINS_API_NAME);
-    tm_temp_allocator_api = reg->get(TM_TEMP_ALLOCATOR_API_NAME);
+    tm_allocator_api           = reg->get(TM_ALLOCATOR_API_NAME);
+    tm_localizer_api           = reg->get(TM_LOCALIZER_API_NAME);
+    tm_logger_api              = reg->get(TM_LOGGER_API_NAME);
+    tm_os_api                  = reg->get(TM_OS_API_NAME);
+    tm_path_api                = reg->get(TM_PATH_API_NAME);
+    tm_plugins_api             = reg->get(TM_PLUGINS_API_NAME);
+    tm_temp_allocator_api      = reg->get(TM_TEMP_ALLOCATOR_API_NAME);
 
     // other plugin apis
-    tm_os_window_api      = reg->get(TM_OS_WINDOW_API_NAME);
+    tm_dxc_shader_compiler_api = reg->get(TM_DXC_SHADER_COMPILER_API_NAME);
+    tm_os_window_api           = reg->get(TM_OS_WINDOW_API_NAME);
 
     tm_set_or_remove_api(reg, load, TM_APPLICATION_API_NAME, tm_application_api);
 }
