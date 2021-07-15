@@ -133,6 +133,31 @@ setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
 
     // Creates Vulkan backend, sets up host memory allocator and enumerates available vulkan instance layers and externsions.
     app->vulkan_backend = tm_vulkan_api->create_backend(&app->allocator, tm_error_api->def);
+
+    // Creates the vulkan instance. Request swap chain support and optionally enable "VK_LAYER_LUNARG_standard_validation"
+    app->vulkan_backend->init(app->vulkan_backend->inst, TM_VULKAN_INIT_FLAG_SWAPCHAIN | (vulkan_validation_layer ? TM_VULKAN_INIT_FLAG_VALIDATION : 0));
+
+    {
+        // Setup a single vulkan device. Prioritize to run it on a discrete GPU if available, else fallback to integrated GPU.
+        tm_vulkan_device_id wanted_device = { 0 };
+
+        uint32_t flags = TM_VULKAN_DEVICE_FLAG_DISCRETE;
+        uint32_t num_devices = app->vulkan_backend->num_physical_devices(app->vulkan_backend->inst, flags);
+        if (num_devices == 0)
+        {
+            flags = TM_VULKAN_DEVICE_FLAG_INTEGRATED;
+            num_devices = app->vulkan_backend->num_physical_devices(app->vulkan_backend->inst, flags);
+        }
+        num_devices = tm_min(num_devices, 1);
+
+        app->vulkan_backend->physical_device_id(app->vulkan_backend->inst, 0, flags, &wanted_device);
+
+        app->vulkan_backend->create_devices(app->vulkan_backend->inst, &wanted_device, 1, &app->device_affinity, 0);
+        app->render_backend = app->vulkan_backend->agnostic_render_backend(app->vulkan_backend->inst);
+    }
+
+    // Expose abstract render backend interfaces to the API registry.
+    tm_add_or_remove_implementation(tm_global_api_registry, true, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);
 }
 
 static void
@@ -146,7 +171,7 @@ shutdown_render_backend(struct tm_application_o *app)
 
     app->vulkan_backend->destroy_devices(app->vulkan_backend->inst, &app->device_affinity, 1);
     app->vulkan_backend->shutdown(app->vulkan_backend->inst);
-
+    tm_add_or_remove_implementation(tm_global_api_registry, false, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);
     tm_vulkan_api->destroy_backend(app->vulkan_backend);
 }
 
@@ -214,6 +239,7 @@ destroy_application(struct tm_application_o *app)
 {
     tm_dxc_shader_compiler_api->shutdown();
 
+    shutdown_render_backend(app);
     shutdown_renderer_plugin();
 
     struct tm_allocator_i a = app->allocator;
