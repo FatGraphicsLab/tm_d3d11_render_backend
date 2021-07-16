@@ -16,7 +16,11 @@ extern struct tm_temp_allocator_api *tm_temp_allocator_api;
 extern struct tm_os_window_api *tm_os_window_api;
 extern struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 extern struct tm_renderer_init_api *tm_renderer_init_api;
+#if defined(USE_D3D11_BACKEND)
+extern struct tm_d3d11_api *tm_d3d11_api;
+#else
 extern struct tm_vulkan_api *tm_vulkan_api;
+#endif
 
 extern struct tm_renderer_command_buffer_api *tm_cmd_buf_api;
 extern struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;

@@ -50,11 +50,12 @@ project "d3d11_render_backend"
     kind "SharedLib"
     targetname "tm_d3d11_render_backend"
     files { "plugins/d3d11_render_backend/**.inl", "plugins/d3d11_render_backend/**.h", "plugins/d3d11_render_backend/**.c" }
-    targetdir "$(TM_SDK_DIR)/bin/plugins"
+    targetdir "bin/%{cfg.buildcfg}/plugins"
 
 project "simple-triangle-dll"
     location "build/simple_triangle_dll"
     kind "SharedLib"
+    dependson { "d3d11_render_backend" }
     files { "samples/simple_triangle/simple_triangle.h", "samples/simple_triangle/simple_triangle.c", "samples/simple_triangle/shaders/**.tmsl" }
     filter "platforms:Win64"
         links { "Shcore.lib" }

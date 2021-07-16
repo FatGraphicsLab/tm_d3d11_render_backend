@@ -1,3 +1,5 @@
+#define USE_D3D11_BACKEND
+
 struct tm_api_registry_api *tm_global_api_registry;
 
 struct tm_allocator_api *tm_allocator_api;
@@ -12,7 +14,11 @@ struct tm_temp_allocator_api *tm_temp_allocator_api;
 struct tm_os_window_api *tm_os_window_api;
 struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 struct tm_renderer_init_api *tm_renderer_init_api;
+#if defined(USE_D3D11_BACKEND)
+struct tm_d3d11_api *tm_d3d11_api;
+#else
 struct tm_vulkan_api *tm_vulkan_api;
+#endif
 
 struct tm_renderer_command_buffer_api *tm_cmd_buf_api;
 struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;
@@ -39,7 +45,12 @@ struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;
 #include <plugins/renderer/render_backend.h>
 // #include <plugins/renderer/render_command_buffer.h>
 #include <plugins/renderer/renderer.h>
+
+#if defined(USE_D3D11_BACKEND)
+#include <plugins/d3d11_render_backend/d3d11_render_backend.h>
+#else
 #include <plugins/vulkan_render_backend/vulkan_render_backend.h>
+#endif
 
 #if defined(TM_OS_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
@@ -56,7 +67,11 @@ struct tm_application_o
 {
     struct tm_allocator_i allocator;
 
+#if defined(USE_D3D11_BACKEND)
+    struct tm_d3d11_backend_i *d3d11_backend;
+#else
     struct tm_vulkan_backend_i *vulkan_backend;
+#endif
     struct tm_renderer_backend_i *render_backend;
     uint32_t device_affinity;
     TM_PAD(4);
@@ -121,6 +136,46 @@ setup_initial_window(struct tm_application_o *app, void *res_buf)
     create_window(app, res_buf, rect, true);
 }
 
+#if defined(USE_D3D11_BACKEND)
+
+static void
+setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
+{
+    if (!tm_d3d11_api->create_backend)
+    {
+        struct tm_nil_renderer_backend_api *tm_nil_renderer_backend_api = tm_global_api_registry->get(TM_NIL_RENDER_BACKEND_API_NAME);
+        app->render_backend = tm_nil_renderer_backend_api->create(&app->allocator);
+        return;
+    }
+
+    app->d3d11_backend = tm_d3d11_api->create_backend(&app->allocator, tm_error_api->def);
+
+    app->d3d11_backend->init(app->d3d11_backend->inst);
+
+    app->render_backend = app->d3d11_backend->agnostic_render_backend(app->d3d11_backend->inst);
+
+    // Expose abstract render backend interfaces to the API registry.
+    tm_add_or_remove_implementation(tm_global_api_registry, true, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);
+}
+
+static void
+shutdown_render_backend(struct tm_application_o *app)
+{
+    if (!app->d3d11_backend)
+    {
+        struct tm_nil_renderer_backend_api *tm_nil_renderer_backend_api = tm_global_api_registry->get(TM_NIL_RENDER_BACKEND_API_NAME);
+        tm_nil_renderer_backend_api->destroy(app->render_backend);
+        return;
+    }
+
+    //app->d3d11_backend->destroy_devices(app->d3d11_backend->inst, &app->device_affinity, 1);
+    app->d3d11_backend->shutdown(app->d3d11_backend->inst);
+    tm_add_or_remove_implementation(tm_global_api_registry, false, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);
+    tm_d3d11_api->destroy_backend(app->d3d11_backend);
+}
+
+#else
+
 static void
 setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
 {
@@ -167,6 +222,7 @@ shutdown_render_backend(struct tm_application_o *app)
     {
         struct tm_nil_renderer_backend_api *tm_nil_renderer_backend_api = tm_global_api_registry->get(TM_NIL_RENDER_BACKEND_API_NAME);
         tm_nil_renderer_backend_api->destroy(app->render_backend);
+        return;
     }
 
     app->vulkan_backend->destroy_devices(app->vulkan_backend->inst, &app->device_affinity, 1);
@@ -174,6 +230,8 @@ shutdown_render_backend(struct tm_application_o *app)
     tm_add_or_remove_implementation(tm_global_api_registry, false, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);
     tm_vulkan_api->destroy_backend(app->vulkan_backend);
 }
+
+#endif
 
 static tm_application_o *
 create_application(int argc, char **argv)
@@ -278,7 +336,11 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
     tm_dxc_shader_compiler_api = reg->get(TM_DXC_SHADER_COMPILER_API_NAME);
     tm_os_window_api           = reg->get(TM_OS_WINDOW_API_NAME);
     tm_renderer_init_api       = reg->get(TM_RENDERER_INIT_API_NAME);
+#if defined(USE_D3D11_BACKEND)
+    tm_d3d11_api               = reg->get(TM_D3D11_API_NAME);
+#else
     tm_vulkan_api              = reg->get(TM_VULKAN_API_NAME);
+#endif
 
     tm_set_or_remove_api(reg, load, TM_APPLICATION_API_NAME, tm_application_api);
 }
