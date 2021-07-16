@@ -228,6 +228,13 @@ create_application(int argc, char **argv)
     // Setup DXC Shader compiler
     tm_dxc_shader_compiler_api->init();
 
+    // Load shaders
+#if 0
+    struct tm_renderer_resource_command_buffer_o *res_buf = 0;
+    struct tm_renderer_backend_i *rb = app->render_backend;
+    rb->create_resource_command_buffers(rb->inst, &res_buf, 1);
+#endif
+
     // Create default window and initialize swap chain.
     setup_initial_window(app, (void*)0);
 

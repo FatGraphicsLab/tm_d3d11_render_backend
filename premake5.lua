@@ -45,6 +45,13 @@ filter "configurations:Release"
     defines { "TM_CONFIGURATION_RELEASE" }
     optimize "On"
 
+project "d3d11_render_backend"
+    location "build/d3d11_render_backend"
+    kind "SharedLib"
+    targetname "tm_d3d11_render_backend"
+    files { "plugins/d3d11_render_backend/**.inl", "plugins/d3d11_render_backend/**.h", "plugins/d3d11_render_backend/**.c" }
+    targetdir "$(TM_SDK_DIR)/bin/plugins"
+
 project "simple-triangle-dll"
     location "build/simple_triangle_dll"
     kind "SharedLib"
