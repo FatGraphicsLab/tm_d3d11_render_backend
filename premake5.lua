@@ -57,7 +57,7 @@ project "simple-triangle-exe"
     targetname "simple-triangle"
     kind "ConsoleApp"
     defines { "TM_LINKS_FOUNDATION", "TM_LINKS_HOST" }
-    dependson { "simple-3d-dll" }
+    dependson { "simple-triangle-dll" }
     files { "samples/simple_triangle/host.c" }
     links { "foundation" }
     filter { "platforms:Win64" }
@@ -72,7 +72,7 @@ project "simple-triangle-exe"
     targetdir "bin/%{cfg.buildcfg}"
     kind "ConsoleApp"
     defines { "TM_LINKS_FOUNDATION", "TM_LINKS_HOST" }
-    dependson { "simple-3d-dll" }
+    dependson { "simple-triangle-dll" }
     files { "simple_triangle/host.c" }
     links { "foundation" }
     filter { "platforms:Win64" }

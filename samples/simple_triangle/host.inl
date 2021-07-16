@@ -33,6 +33,7 @@ static void run_application(const run_application_t *data)
 
     while (api->tick(app))
         tm_plugins_api->check_hot_reload();
+
     api->destroy(app);
 }
 
