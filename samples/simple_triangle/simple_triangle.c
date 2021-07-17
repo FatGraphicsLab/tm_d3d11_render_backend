@@ -152,7 +152,18 @@ setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
 
     app->d3d11_backend->init(app->d3d11_backend->inst);
 
-    app->render_backend = app->d3d11_backend->agnostic_render_backend(app->d3d11_backend->inst);
+    {
+        uint32_t flags = TM_D3D11_DEVICE_FLAG_DISCRETE;
+        uint32_t num_devices = app->d3d11_backend->num_physical_devices(app->d3d11_backend->inst, flags);
+        if (num_devices == 0)
+        {
+            flags = TM_D3D11_DEVICE_FLAG_INTEGRATED;
+            num_devices = app->d3d11_backend->num_physical_devices(app->d3d11_backend->inst, flags);
+        }
+        num_devices = tm_min(num_devices, 1);
+
+        app->render_backend = app->d3d11_backend->agnostic_render_backend(app->d3d11_backend->inst);
+    }
 
     // Expose abstract render backend interfaces to the API registry.
     tm_add_or_remove_implementation(tm_global_api_registry, true, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);

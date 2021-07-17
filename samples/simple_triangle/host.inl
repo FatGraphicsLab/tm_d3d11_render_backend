@@ -137,8 +137,11 @@ int run(int argc, char *argv[])
             tm_atomic_counter_o *completed = job_system->run_jobs(&j, 1);
             job_system->wait_for_counter_and_free_no_fiber(completed);
         }
-    } else
+    }
+    else
+    {
         TM_LOG("Could not find main DLL `%s` next to exe `%s`", main_dll, exe_path);
+    }
 
     tm_destroy_task_system();
     tm_destroy_job_system(job_system);

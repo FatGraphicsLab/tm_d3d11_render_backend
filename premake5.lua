@@ -51,6 +51,8 @@ project "d3d11_render_backend"
     targetname "tm_d3d11_render_backend"
     files { "plugins/d3d11_render_backend/**.inl", "plugins/d3d11_render_backend/**.h", "plugins/d3d11_render_backend/**.c" }
     targetdir "bin/%{cfg.buildcfg}/plugins"
+    filter "platforms:Win64"
+        links { "dxgi.lib", "dxguid.lib" }
 
 project "simple-triangle-dll"
     location "build/simple_triangle_dll"
