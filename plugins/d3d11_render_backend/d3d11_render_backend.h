@@ -17,6 +17,11 @@ enum tm_d3d11_device_flag
     TM_D3D11_DEVICE_FLAG_INTEGRATED = 0x2,
 };
 
+struct tm_d3d11_device_id
+{
+    uint32_t opaque;
+};
+
 struct tm_d3d11_backend_o;
 
 struct tm_d3d11_backend_i
@@ -38,6 +43,16 @@ struct tm_d3d11_backend_i
     
     // Returns number of available physical devices that fulfills the required_device_flags.
     uint32_t (*num_physical_devices)(struct tm_d3d11_backend_o *inst, uint32_t required_device_flags);
+
+    // Returns the name of the physical device with index `device` that fulfills the
+    // `required_device_flags`. `vendor_id` and `device_id` are optional.
+    const char *(*physical_device_name)(struct tm_d3d11_backend_o *inst, uint32_t device,
+        uint32_t required_device_flags, uint32_t *vendor_id, uint32_t *device_id);
+
+    // Looks up a unique identifier to the physical device with index `device` matching
+    // `required_device_flags` and store it in `result`. Returns true on success, else false.
+    bool (*physical_device_id)(struct tm_d3d11_backend_o *inst, uint32_t device,
+        uint32_t required_device_flags, struct tm_d3d11_device_id *result);
 };
 
 
