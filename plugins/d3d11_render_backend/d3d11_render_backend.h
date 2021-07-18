@@ -8,7 +8,7 @@ struct tm_error_i;
 
 // Create / Destroy devices
 
-enum tm_d3d11_device_flag 
+enum tm_d3d11_device_flag
 {
     // Set to include discrete GPUs when reasoning about physical device.
     TM_D3D11_DEVICE_FLAG_DISCRETE   = 0x1,

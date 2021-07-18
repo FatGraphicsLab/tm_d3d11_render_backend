@@ -111,10 +111,25 @@ d3d11__print_adapters(struct tm_d3d11_backend_o *inst)
 // Create / Destroy devices
 
 static enum adapter_type_flag
-guess_adapter_type(struct d3d11_adapter_t *adapter)
+guess_adapter_type(const struct d3d11_adapter_t *adapter)
 {
     // adapter->name == "Microsoft Basic Render Driver", a software adapter from win8
-    return (adapter->device_id == PCI_VENDOR_ID__NVIDIA || adapter->device_id == PCI_VENDOR_ID__AMD);
+    if (adapter->vendor_id == PCI_VENDOR_ID__MICROSOFT)
+        return ADAPTER_TYPE__CPU;
+
+    if (adapter->vendor_id == PCI_VENDOR_ID__NVIDIA || adapter->vendor_id == PCI_VENDOR_ID__AMD)
+        return ADAPTER_TYPE__DISCRETE_GPU;
+
+    return ADAPTER_TYPE__INTEGRATED_GPU;
+}
+
+static bool
+accept_adapter(const struct d3d11_adapter_t *adapter, uint32_t required_device_flags)
+{
+    bool success = required_device_flags == 0;
+    success |= (required_device_flags & TM_D3D11_DEVICE_FLAG_DISCRETE) && (adapter->type == ADAPTER_TYPE__DISCRETE_GPU);
+    success |= (required_device_flags & TM_D3D11_DEVICE_FLAG_INTEGRATED) && (adapter->type == ADAPTER_TYPE__INTEGRATED_GPU);
+    return success;
 }
 
 static void
@@ -147,6 +162,8 @@ d3d11__build_adapters(struct tm_d3d11_backend_o *inst)
         //
         // So we just guess it.
         adapter.type = guess_adapter_type(&adapter);
+        if (adapter.type == ADAPTER_TYPE__CPU)
+            continue;
 
         tm_carray_push(inst->adapters, adapter, &inst->allocator);
 
@@ -214,7 +231,14 @@ d3d11__agnostic_render_backend(struct tm_d3d11_backend_o *inst)
 static uint32_t
 d3d11__num_physical_devices(struct tm_d3d11_backend_o *inst, uint32_t required_device_flags)
 {
-    return 0;
+    struct d3d11_adapter_t *adapter;
+    uint32_t num_devices = 0;
+    for (adapter = inst->adapters; adapter != tm_carray_end(inst->adapters); ++adapter)
+    {
+        if (accept_adapter(adapter, required_device_flags))
+            num_devices++;
+    }
+    return num_devices;
 }
 
 static const char *

@@ -155,10 +155,12 @@ setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
     {
         uint32_t flags = TM_D3D11_DEVICE_FLAG_DISCRETE;
         uint32_t num_devices = app->d3d11_backend->num_physical_devices(app->d3d11_backend->inst, flags);
+        tm_logger_api->printf(TM_LOG_TYPE_INFO, "dGPU num: %u", num_devices);
         if (num_devices == 0)
         {
             flags = TM_D3D11_DEVICE_FLAG_INTEGRATED;
             num_devices = app->d3d11_backend->num_physical_devices(app->d3d11_backend->inst, flags);
+            tm_logger_api->printf(TM_LOG_TYPE_INFO, "iGPU num: %u", num_devices);
         }
         num_devices = tm_min(num_devices, 1);
 
@@ -207,12 +209,14 @@ setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
         // Setup a single vulkan device. Prioritize to run it on a discrete GPU if available, else fallback to integrated GPU.
         tm_vulkan_device_id wanted_device = { 0 };
 
-        uint32_t flags = TM_VULKAN_DEVICE_FLAG_DISCRETE;
+        uint32_t flags = 0; // TM_VULKAN_DEVICE_FLAG_DISCRETE;
         uint32_t num_devices = app->vulkan_backend->num_physical_devices(app->vulkan_backend->inst, flags);
+        tm_logger_api->printf(TM_LOG_TYPE_INFO, "dGPU num: %u", num_devices);
         if (num_devices == 0)
         {
             flags = TM_VULKAN_DEVICE_FLAG_INTEGRATED;
             num_devices = app->vulkan_backend->num_physical_devices(app->vulkan_backend->inst, flags);
+            tm_logger_api->printf(TM_LOG_TYPE_INFO, "iGPU num: %u", num_devices);
         }
         num_devices = tm_min(num_devices, 1);
 
