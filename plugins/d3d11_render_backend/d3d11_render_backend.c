@@ -245,7 +245,25 @@ static const char *
 d3d11__physical_device_name(struct tm_d3d11_backend_o *inst, uint32_t device,
     uint32_t required_device_flags, uint32_t *vendor_id, uint32_t *device_id)
 {
-    return "";
+    struct d3d11_adapter_t *adapter;
+    uint32_t index = 0;
+
+    for (adapter = inst->adapters; adapter != tm_carray_end(inst->adapters); ++adapter)
+    {
+        if (!accept_adapter(adapter, required_device_flags))
+            continue;
+
+        if (index == device)
+            break;
+    }
+
+    if (vendor_id)
+        *vendor_id = adapter->vendor_id;
+
+    if (device_id)
+        *device_id = adapter->device_id;
+
+    return adapter->name;
 }
 
 static bool

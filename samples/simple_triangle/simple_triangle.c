@@ -155,7 +155,18 @@ setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
     {
         uint32_t flags = TM_D3D11_DEVICE_FLAG_DISCRETE;
         uint32_t num_devices = app->d3d11_backend->num_physical_devices(app->d3d11_backend->inst, flags);
+        
         tm_logger_api->printf(TM_LOG_TYPE_INFO, "dGPU num: %u", num_devices);
+        if (num_devices > 0)
+        {
+            const char *name;
+            uint32_t vendor_id, device_id;
+            name = app->d3d11_backend->physical_device_name(app->d3d11_backend->inst, 0, flags,
+                &vendor_id, &device_id);
+            tm_logger_api->printf(TM_LOG_TYPE_INFO, "  dGPU: %s, VendorId: 0x%x, DeviceId: 0x%x",
+                name, vendor_id, device_id);
+        }
+
         if (num_devices == 0)
         {
             flags = TM_D3D11_DEVICE_FLAG_INTEGRATED;
