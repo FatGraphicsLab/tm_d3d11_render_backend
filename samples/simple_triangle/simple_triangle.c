@@ -1,4 +1,4 @@
-#define USE_D3D11_BACKEND
+// #define USE_D3D11_BACKEND
 
 struct tm_api_registry_api *tm_global_api_registry;
 
@@ -10,10 +10,16 @@ struct tm_os_api *tm_os_api;
 struct tm_path_api *tm_path_api;
 struct tm_plugins_api *tm_plugins_api;
 struct tm_temp_allocator_api *tm_temp_allocator_api;
+struct tm_the_truth_api *tm_the_truth_api;
 
 struct tm_os_window_api *tm_os_window_api;
 struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 struct tm_renderer_init_api *tm_renderer_init_api;
+struct tm_shader_api *tm_shader_api;
+struct tm_shader_declaration_api *tm_shader_declaration_api;
+struct tm_shader_repository_api *tm_shader_repository_api;
+struct tm_shader_system_api *tm_shader_system_api;
+
 #if defined(USE_D3D11_BACKEND)
 struct tm_d3d11_api *tm_d3d11_api;
 #else
@@ -38,6 +44,7 @@ struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;
 #include <foundation/plugin.h>
 #include <foundation/string.inl>
 #include <foundation/temp_allocator.h>
+#include <foundation/the_truth.h>
 
 #include <plugins/dxc_shader_compiler/dxc_compiler.h>
 #include <plugins/os_window/os_window.h>
@@ -45,6 +52,7 @@ struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;
 #include <plugins/renderer/render_backend.h>
 // #include <plugins/renderer/render_command_buffer.h>
 #include <plugins/renderer/renderer.h>
+#include <plugins/shader_system/shader_system.h>
 
 #if defined(USE_D3D11_BACKEND)
 #include <plugins/d3d11_render_backend/d3d11_render_backend.h>
@@ -67,6 +75,8 @@ struct tm_application_o
 {
     struct tm_allocator_i allocator;
 
+    struct tm_the_truth_o *tt;
+
 #if defined(USE_D3D11_BACKEND)
     struct tm_d3d11_backend_i *d3d11_backend;
 #else
@@ -75,6 +85,9 @@ struct tm_application_o
     struct tm_renderer_backend_i *render_backend;
     uint32_t device_affinity;
     TM_PAD(4);
+
+    struct tm_shader_repository_o *shader_repository;
+    char *shader_dir;
 
     struct window_t window;
 };
@@ -175,6 +188,10 @@ setup_render_backend(struct tm_application_o *app, bool vulkan_validation_layer)
         }
         num_devices = tm_min(num_devices, 1);
 
+        struct tm_d3d11_device_id wanted_device = { 0 };
+        app->d3d11_backend->physical_device_id(app->d3d11_backend->inst, 0, flags, &wanted_device);
+        app->d3d11_backend->create_device(app->d3d11_backend->inst, wanted_device);
+
         app->render_backend = app->d3d11_backend->agnostic_render_backend(app->d3d11_backend->inst);
     }
 
@@ -192,7 +209,7 @@ shutdown_render_backend(struct tm_application_o *app)
         return;
     }
 
-    //app->d3d11_backend->destroy_devices(app->d3d11_backend->inst, &app->device_affinity, 1);
+    app->d3d11_backend->destroy_device(app->d3d11_backend->inst);
     app->d3d11_backend->shutdown(app->d3d11_backend->inst);
     tm_add_or_remove_implementation(tm_global_api_registry, false, TM_RENDER_BACKEND_INTERFACE_NAME, app->render_backend);
     tm_d3d11_api->destroy_backend(app->d3d11_backend);
@@ -303,7 +320,7 @@ create_application(int argc, char **argv)
     init_renderer_plugin(&app->allocator);
 
     // Initialize and setup the truth
-    // TODO
+    app->tt = tm_the_truth_api->create(&app->allocator, TM_THE_TRUTH_CREATE_TYPES_ALL);
 
     // Setup render backend and create device
     const bool vulkan_validation = false;
@@ -313,11 +330,11 @@ create_application(int argc, char **argv)
     tm_dxc_shader_compiler_api->init();
 
     // Load shaders
-#if 0
     struct tm_renderer_resource_command_buffer_o *res_buf = 0;
     struct tm_renderer_backend_i *rb = app->render_backend;
     rb->create_resource_command_buffers(rb->inst, &res_buf, 1);
-#endif
+
+    // app->shader_repository = tm_shader_repository_api->create(0, &app->allocator, app->render_backend,)
 
     // Create default window and initialize swap chain.
     setup_initial_window(app, (void*)0);
@@ -332,6 +349,8 @@ destroy_application(struct tm_application_o *app)
 
     shutdown_render_backend(app);
     shutdown_renderer_plugin();
+
+    tm_the_truth_api->destroy(app->tt);
 
     struct tm_allocator_i a = app->allocator;
     tm_free(&a, app, sizeof(*app));
@@ -357,11 +376,17 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
     tm_path_api                = reg->get(TM_PATH_API_NAME);
     tm_plugins_api             = reg->get(TM_PLUGINS_API_NAME);
     tm_temp_allocator_api      = reg->get(TM_TEMP_ALLOCATOR_API_NAME);
+    tm_the_truth_api           = reg->get(TM_THE_TRUTH_API_NAME);
 
     // other plugin apis
     tm_dxc_shader_compiler_api = reg->get(TM_DXC_SHADER_COMPILER_API_NAME);
     tm_os_window_api           = reg->get(TM_OS_WINDOW_API_NAME);
     tm_renderer_init_api       = reg->get(TM_RENDERER_INIT_API_NAME);
+    tm_shader_api              = reg->get(TM_SHADER_API_NAME);
+    tm_shader_declaration_api  = reg->get(TM_SHADER_DECLARATION_API_NAME);
+    tm_shader_repository_api   = reg->get(TM_SHADER_REPOSITORY_API_NAME);
+    tm_shader_system_api       = reg->get(TM_SHADER_SYSTEM_API_NAME);
+    
 #if defined(USE_D3D11_BACKEND)
     tm_d3d11_api               = reg->get(TM_D3D11_API_NAME);
 #else

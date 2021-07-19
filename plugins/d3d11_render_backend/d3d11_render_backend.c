@@ -19,6 +19,7 @@ struct tm_unicode_api *tm_unicode_api;
 #include <foundation/temp_allocator.h>
 #include <foundation/unicode.h>
 #include <plugins/renderer/nil_render_backend.h> // TODO: remove me
+#include <plugins/renderer/render_backend.h>
 
 #define COBJMACROS
 #include <dxgi.h>
@@ -130,6 +131,22 @@ accept_adapter(const struct d3d11_adapter_t *adapter, uint32_t required_device_f
     success |= (required_device_flags & TM_D3D11_DEVICE_FLAG_DISCRETE) && (adapter->type == ADAPTER_TYPE__DISCRETE_GPU);
     success |= (required_device_flags & TM_D3D11_DEVICE_FLAG_INTEGRATED) && (adapter->type == ADAPTER_TYPE__INTEGRATED_GPU);
     return success;
+}
+
+static struct d3d11_adapter_t *
+find_adapter(struct tm_d3d11_backend_o *inst, uint32_t device, uint32_t required_device_flags)
+{
+    struct d3d11_adapter_t *adapter;
+    uint32_t index = 0;
+    for (adapter = inst->adapters; adapter != tm_carray_end(inst->adapters); ++adapter)
+    {
+        if (!accept_adapter(adapter, required_device_flags))
+            continue;
+
+        if (index == device)
+            break;
+    }
+    return adapter != tm_carray_end(inst->adapters) ? adapter : NULL;
 }
 
 static void
@@ -246,16 +263,10 @@ d3d11__physical_device_name(struct tm_d3d11_backend_o *inst, uint32_t device,
     uint32_t required_device_flags, uint32_t *vendor_id, uint32_t *device_id)
 {
     struct d3d11_adapter_t *adapter;
-    uint32_t index = 0;
 
-    for (adapter = inst->adapters; adapter != tm_carray_end(inst->adapters); ++adapter)
-    {
-        if (!accept_adapter(adapter, required_device_flags))
-            continue;
-
-        if (index == device)
-            break;
-    }
+    adapter = find_adapter(inst, device, required_device_flags);
+    if (!adapter)
+        return "";
 
     if (vendor_id)
         *vendor_id = adapter->vendor_id;
@@ -270,7 +281,26 @@ static bool
 d3d11__physical_device_id(struct tm_d3d11_backend_o *inst, uint32_t device,
     uint32_t required_device_flags, struct tm_d3d11_device_id *result)
 {
+    struct d3d11_adapter_t *adapter;
+
+    adapter = find_adapter(inst, device, required_device_flags);
+    if (!adapter)
+        return false;
+
+    result->opaque = (uint32_t)(adapter - inst->adapters);
+    return true;
+}
+
+static bool
+d3d11__create_device(struct tm_d3d11_backend_o *inst, struct tm_d3d11_device_id device_id)
+{
     return false;
+}
+
+static void
+d3d11__destroy_device(struct tm_d3d11_backend_o *inst)
+{
+
 }
 
 
@@ -290,6 +320,8 @@ api__create_backend(struct tm_allocator_i *allocator, struct tm_error_i *error)
     o->i.num_physical_devices    = d3d11__num_physical_devices;
     o->i.physical_device_name    = d3d11__physical_device_name;
     o->i.physical_device_id      = d3d11__physical_device_id;
+    o->i.create_device           = d3d11__create_device;
+    o->i.destroy_device          = d3d11__destroy_device;
 
     o->allocator                 = a;
 
@@ -307,7 +339,8 @@ api__destroy_backend(struct tm_d3d11_backend_i *backend)
 
 static struct tm_d3d11_api tm_d3d11_api_instance = {
     .create_backend  = api__create_backend,
-    .destroy_backend = api__destroy_backend, 
+    .destroy_backend = api__destroy_backend,
+    .shader_compiler = NULL,
 };
 
 struct tm_d3d11_api *tm_d3d11_api = &tm_d3d11_api_instance;

@@ -12,10 +12,16 @@ extern struct tm_os_api *tm_os_api;
 extern struct tm_path_api *tm_path_api;
 extern struct tm_plugins_api *tm_plugins_api;
 extern struct tm_temp_allocator_api *tm_temp_allocator_api;
+extern struct tm_the_truth_api *tm_the_truth_api;
 
 extern struct tm_os_window_api *tm_os_window_api;
 extern struct tm_dxc_shader_compiler_api *tm_dxc_shader_compiler_api;
 extern struct tm_renderer_init_api *tm_renderer_init_api;
+extern struct tm_shader_api *tm_shader_api;
+extern struct tm_shader_declaration_api *tm_shader_declaration_api;
+extern struct tm_shader_repository_api *tm_shader_repository_api;
+extern struct tm_shader_system_api *tm_shader_system_api;
+
 #if defined(USE_D3D11_BACKEND)
 extern struct tm_d3d11_api *tm_d3d11_api;
 #else

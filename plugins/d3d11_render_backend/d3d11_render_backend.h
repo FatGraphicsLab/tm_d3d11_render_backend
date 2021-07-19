@@ -53,6 +53,12 @@ struct tm_d3d11_backend_i
     // `required_device_flags` and store it in `result`. Returns true on success, else false.
     bool (*physical_device_id)(struct tm_d3d11_backend_o *inst, uint32_t device,
         uint32_t required_device_flags, struct tm_d3d11_device_id *result);
+
+    // Create D3D11 device using `device_id`.
+    bool (*create_device)(struct tm_d3d11_backend_o *inst, struct tm_d3d11_device_id device_id);
+
+    // Destroys D3D11 device already created.
+    void (*destroy_device)(struct tm_d3d11_backend_o *inst);
 };
 
 
@@ -62,4 +68,5 @@ struct tm_d3d11_api
 {
     struct tm_d3d11_backend_i *(*create_backend)(struct tm_allocator_i *allocator, struct tm_error_i *error);
     void (*destroy_backend)(struct tm_d3d11_backend_i *backend);
+    struct tm_renderer_shader_compiler_api *(*shader_compiler)(void);
 };
