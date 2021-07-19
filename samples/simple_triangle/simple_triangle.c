@@ -1,4 +1,4 @@
-// #define USE_D3D11_BACKEND
+#define USE_D3D11_BACKEND
 
 struct tm_api_registry_api *tm_global_api_registry;
 

@@ -20,6 +20,8 @@ struct tm_unicode_api *tm_unicode_api;
 #include <foundation/unicode.h>
 #include <plugins/renderer/nil_render_backend.h> // TODO: remove me
 #include <plugins/renderer/render_backend.h>
+#include <plugins/renderer/shader_compiler.h>
+#include <plugins/renderer/shader_compiler_state_blocks_common.h>
 
 #define COBJMACROS
 #include <dxgi.h>
@@ -303,7 +305,97 @@ d3d11__destroy_device(struct tm_d3d11_backend_o *inst)
 
 }
 
+// -------------------------------------------------------------------
+// d3d11 shader_compiler
 
+static tm_renderer_shader_compiler_o *
+shader_compiler__init(struct tm_allocator_i *allocator)
+{
+    return 0;
+}
+
+static void
+shader_compiler__shutdown(struct tm_renderer_shader_compiler_o *inst)
+{
+
+}
+
+static const uint32_t supported_block_types[] = {
+    TM_RENDERER_STATE_BLOCK_TYPE_TESSELLATION,
+    TM_RENDERER_STATE_BLOCK_TYPE_RASTER,
+    TM_RENDERER_STATE_BLOCK_TYPE_DEPTH_STENCIL,
+    TM_RENDERER_STATE_BLOCK_TYPE_TEXTURE_SAMPLER,
+    TM_RENDERER_STATE_BLOCK_TYPE_RENDER_TARGET_BLEND,
+    TM_RENDERER_STATE_BLOCK_TYPE_BLEND,
+    TM_RENDERER_STATE_BLOCK_TYPE_MULTI_SAMPLE,
+};
+
+static uint32_t
+shader_compiler__num_state_block_types(struct tm_renderer_shader_compiler_o *inst)
+{
+    return TM_ARRAY_COUNT(supported_block_types);
+}
+
+static uint32_t
+shader_compiler__state_block_type(struct tm_renderer_shader_compiler_o *inst, uint32_t state_block_type_idx)
+{
+    return supported_block_types[state_block_type_idx];
+}
+
+static const char *
+shader_compiler__state_block_name(struct tm_renderer_shader_compiler_o *inst, uint32_t state_block_type)
+{
+    return tm_renderer_state_block_names[state_block_type];
+}
+
+static uint32_t
+shader_compiler__num_states(struct tm_renderer_shader_compiler_o *inst, uint32_t state_block_type)
+{
+    switch (state_block_type)
+    {
+    case TM_RENDERER_STATE_BLOCK_TYPE_TESSELLATION:        return TM_RENDERER_TESSELLATION_STATE_MAX_STATES;
+    case TM_RENDERER_STATE_BLOCK_TYPE_RASTER:              return TM_RENDERER_RASTER_STATE_MAX_STATES;
+    case TM_RENDERER_STATE_BLOCK_TYPE_DEPTH_STENCIL:       return TM_RENDERER_DEPTH_STENCIL_STATE_MAX_STATES;
+    case TM_RENDERER_STATE_BLOCK_TYPE_TEXTURE_SAMPLER:     return TM_RENDERER_SAMPLER_STATE_MAX_STATES;
+    case TM_RENDERER_STATE_BLOCK_TYPE_RENDER_TARGET_BLEND: return TM_RENDERER_RENDER_TARGET_BLEND_STATE_MAX_STATES;
+    case TM_RENDERER_STATE_BLOCK_TYPE_BLEND:               return TM_RENDERER_BLEND_STATE_MAX_STATES;
+    case TM_RENDERER_STATE_BLOCK_TYPE_MULTI_SAMPLE:        return TM_RENDERER_MULTI_SAMPLE_MAX_STATES;
+    default:                                               return 0;
+    }
+}
+
+static const char *
+shader_compiler__state_name(struct tm_renderer_shader_compiler_o *inst, uint32_t state_block_type,
+    uint32_t state)
+{
+    switch (state_block_type)
+    {
+    case TM_RENDERER_STATE_BLOCK_TYPE_TESSELLATION:        return tm_renderer_tessellation_state_names[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_RASTER:              return tm_renderer_raster_state_names[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_DEPTH_STENCIL:       return tm_renderer_depth_stencil_state_names[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_TEXTURE_SAMPLER:     return tm_renderer_sampler_state_names[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_RENDER_TARGET_BLEND: return tm_renderer_render_target_blend_state_names[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_BLEND:               return tm_renderer_blend_state_names[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_MULTI_SAMPLE:        return tm_renderer_multi_sample_state_names[state];
+    default:                                               return 0;
+    }
+}
+
+
+static struct tm_renderer_shader_compiler_api d3d11_shader_compiler = {
+    // Init & Shutdown
+    .init         = shader_compiler__init,
+    .shutdown     = shader_compiler__shutdown,
+
+    // State block key:value enumeration
+    .num_state_block_types = shader_compiler__num_state_block_types,
+    .state_block_type      = shader_compiler__state_block_type,
+    .state_block_name      = shader_compiler__state_block_name,
+    .num_states            = shader_compiler__num_states,
+    .state_name            = shader_compiler__state_name,
+};
+
+// -------------------------------------------------------------------
 // tm_d3d11_api
 
 static struct tm_d3d11_backend_i *
@@ -337,10 +429,16 @@ api__destroy_backend(struct tm_d3d11_backend_i *backend)
     tm_allocator_api->destroy_child(&a);
 }
 
+static struct tm_renderer_shader_compiler_api *
+api__shader_compiler(void)
+{
+    return &d3d11_shader_compiler;
+}
+
 static struct tm_d3d11_api tm_d3d11_api_instance = {
     .create_backend  = api__create_backend,
     .destroy_backend = api__destroy_backend,
-    .shader_compiler = NULL,
+    .shader_compiler = api__shader_compiler,
 };
 
 struct tm_d3d11_api *tm_d3d11_api = &tm_d3d11_api_instance;
