@@ -305,6 +305,7 @@ d3d11__destroy_device(struct tm_d3d11_backend_o *inst)
 
 }
 
+
 // -------------------------------------------------------------------
 // d3d11 shader_compiler
 

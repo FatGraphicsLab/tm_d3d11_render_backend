@@ -277,6 +277,13 @@ shutdown_render_backend(struct tm_application_o *app)
 
 #endif
 
+static const char *
+default_data_dir(struct tm_temp_allocator_i *ta, const char *exe)
+{
+    const char *exe_name = tm_path_api->base_cstr(exe);
+    return tm_temp_allocator_api->printf(ta, "%.*sdata-simple-triangle/", (int)(exe_name - exe), exe);
+}
+
 static tm_application_o *
 create_application(int argc, char **argv)
 {
@@ -317,6 +324,8 @@ create_application(int argc, char **argv)
         .allocator = a,
     };
 
+    TM_INIT_TEMP_ALLOCATOR(ta);
+
     // Initialize the render plugin, setup APIs
     init_renderer_plugin(&app->allocator);
 
@@ -335,24 +344,43 @@ create_application(int argc, char **argv)
     struct tm_renderer_backend_i *rb = app->render_backend;
     rb->create_resource_command_buffers(rb->inst, &res_buf, 1);
 
-#if 0
-    struct tm_renderer_shader_compiler_api *sc_api = tm_d3d11_api->shader_compiler();
-    struct tm_renderer_shader_compiler_o *sc_inst = sc_api->init(&app->allocator);
-    const char *name = sc_api->state_name(sc_inst, TM_RENDERER_STATE_BLOCK_TYPE_TEXTURE_SAMPLER, 2);
-    tm_logger_api->printf(TM_LOG_TYPE_INFO, "name: %s", name);
-    sc_api->shutdown(sc_inst);
-#endif
-    // app->shader_repository = tm_shader_repository_api->create(0, &app->allocator, app->render_backend,)
+    app->shader_repository = tm_shader_repository_api->create(0, &app->allocator, app->render_backend,
+        tm_d3d11_api->shader_compiler(), app->tt);
+    const char *data_dir = default_data_dir(ta, exe_path);
+    const char *shader_dir = tm_temp_allocator_api->printf(ta, "%s/%s", data_dir, "shaders/");
+    uint32_t l = (uint32_t) strlen(shader_dir) + 1;
+    app->shader_dir = tm_alloc(&app->allocator, l);
+    memcpy(app->shader_dir, shader_dir, l);
+    tm_shader_repository_api->update_shaders_from_directory(app->shader_repository, shader_dir, false,
+        &app->allocator, res_buf);
 
     // Create default window and initialize swap chain.
     setup_initial_window(app, (void*)0);
 
+    rb->submit_resource_command_buffers(rb->inst, &res_buf, 1);
+    rb->destroy_resource_command_buffers(rb->inst, &res_buf, 1);
+
+    TM_SHUTDOWN_TEMP_ALLOCATOR(ta);
     return app;
 }
 
 static void
 destroy_application(struct tm_application_o *app)
 {
+    struct tm_renderer_backend_i *rb = app->render_backend;
+
+    struct tm_renderer_resource_command_buffer_o *res_buf = 0;
+    rb->create_resource_command_buffers(rb->inst, &res_buf, 1);
+
+    tm_shader_repository_api->destroy(app->shader_repository, res_buf);
+    tm_free(&app->allocator, app->shader_dir, strlen(app->shader_dir) + 1);
+
+    // TODO: destroy_swap_chain
+    // TODO: destroy_window
+
+    rb->submit_resource_command_buffers(rb->inst, &res_buf, 1);
+    rb->destroy_resource_command_buffers(rb->inst, &res_buf, 1);
+
     tm_dxc_shader_compiler_api->shutdown();
 
     shutdown_render_backend(app);
