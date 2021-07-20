@@ -381,6 +381,77 @@ shader_compiler__state_name(struct tm_renderer_shader_compiler_o *inst, uint32_t
     }
 }
 
+static uint32_t
+shader_compiler__value_type(struct tm_renderer_shader_compiler_o *inst, uint32_t state_block_type,
+    uint32_t state)
+{
+    switch (state_block_type)
+    {
+    case TM_RENDERER_STATE_BLOCK_TYPE_TESSELLATION:        return tm_renderer_tessellation_state_value_types[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_RASTER:              return tm_renderer_raster_state_value_types[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_DEPTH_STENCIL:       return tm_renderer_depth_stencil_state_value_types[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_TEXTURE_SAMPLER:     return tm_renderer_sampler_state_types[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_RENDER_TARGET_BLEND: return tm_renderer_render_target_blend_state_types[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_BLEND:               return tm_renderer_blend_state_types[state];
+    case TM_RENDERER_STATE_BLOCK_TYPE_MULTI_SAMPLE:        return tm_renderer_multi_sample_state_types[state];
+    default:                                               return 0;
+    }
+}
+
+static uint32_t
+shader_compiler__num_values(struct tm_renderer_shader_compiler_o *inst, uint32_t value_type)
+{
+    switch (value_type)
+    {
+    case TM_RENDERER_STATE_VALUE_TYPE_COMPARE_OP:          return TM_RENDERER_COMPARE_OP_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_CULL:                return TM_RENDERER_RASTER_VALUE_CULL_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_FRONT_FACE:          return TM_RENDERER_RASTER_VALUE_FRONT_FACE_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_POLYGON_MODE:        return TM_RENDERER_RASTER_VALUE_POLYGON_MODE_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_STENCIL_OP:          return TM_RENDERER_STENCIL_OP_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_FILTER:              return TM_RENDERER_FILTER_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_MIP_MODE:            return TM_RENDERER_MIP_MODE_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_ADDRESS_MODE:        return TM_RENDERER_ADDRESS_MODE_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_BORDER_COLOR:        return TM_RENDERER_BORDER_COLOR_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_FACTOR:        return TM_RENDERER_BLEND_FACTOR_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_OPERATION:     return TM_RENDERER_BLEND_OP_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_WRITE_MASK:    return TM_RENDERER_BLEND_WRITE_MASK_MAX_VALUES;
+    case TM_RENDERER_STATE_VALUE_TYPE_LOGICAL_OPERATION:   return TM_RENDERER_LOGICAL_OP_MAX_VALUES;
+    default:                                               return 0;
+    }
+}
+
+static const char *
+shader_compiler__value_name(struct tm_renderer_shader_compiler_o *inst, uint32_t value_type, uint32_t value)
+{
+    switch (value_type)
+    {
+    case TM_RENDERER_STATE_VALUE_TYPE_COMPARE_OP:          return tm_renderer_value_compare_op_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_CULL:                return tm_renderer_raster_value_cull_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_FRONT_FACE:          return tm_renderer_raster_value_front_face_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_POLYGON_MODE:        return tm_renderer_raster_value_polygon_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_STENCIL_OP:          return tm_renderer_value_stencil_op_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_FILTER:              return tm_renderer_value_filter_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_MIP_MODE:            return tm_renderer_value_mip_mode_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_ADDRESS_MODE:        return tm_renderer_value_address_mode_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_BORDER_COLOR:        return tm_renderer_value_border_color_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_FACTOR:        return tm_renderer_value_blend_factor_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_OPERATION:     return tm_renderer_value_blend_op_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_WRITE_MASK:    return tm_renderer_value_write_mask_names[value];
+    case TM_RENDERER_STATE_VALUE_TYPE_LOGICAL_OPERATION:   return tm_renderer_value_logical_op_names[value];
+    default:                                               return 0;
+    }
+}
+
+static uint32_t
+shader_compiler__enum_value(struct tm_renderer_shader_compiler_o *inst, uint32_t value_type, uint32_t value)
+{
+    switch (value_type)
+    {
+    case TM_RENDERER_STATE_VALUE_TYPE_BLEND_WRITE_MASK: return tm_renderer_enum_value_write_mask[value];
+    default:                                            return 0;
+    }
+}
+
 
 static struct tm_renderer_shader_compiler_api d3d11_shader_compiler = {
     // Init & Shutdown
@@ -393,6 +464,10 @@ static struct tm_renderer_shader_compiler_api d3d11_shader_compiler = {
     .state_block_name      = shader_compiler__state_block_name,
     .num_states            = shader_compiler__num_states,
     .state_name            = shader_compiler__state_name,
+    .value_type            = shader_compiler__value_type,
+    .num_values            = shader_compiler__num_values,
+    .value_name            = shader_compiler__value_name,
+    .enum_value            = shader_compiler__enum_value,
 };
 
 // -------------------------------------------------------------------

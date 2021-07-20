@@ -52,6 +52,7 @@ struct tm_renderer_resource_command_buffer_api *tm_res_buf_api;
 #include <plugins/renderer/render_backend.h>
 // #include <plugins/renderer/render_command_buffer.h>
 #include <plugins/renderer/renderer.h>
+#include <plugins/renderer/shader_compiler.h>
 #include <plugins/shader_system/shader_system.h>
 
 #if defined(USE_D3D11_BACKEND)
@@ -334,6 +335,13 @@ create_application(int argc, char **argv)
     struct tm_renderer_backend_i *rb = app->render_backend;
     rb->create_resource_command_buffers(rb->inst, &res_buf, 1);
 
+#if 0
+    struct tm_renderer_shader_compiler_api *sc_api = tm_d3d11_api->shader_compiler();
+    struct tm_renderer_shader_compiler_o *sc_inst = sc_api->init(&app->allocator);
+    const char *name = sc_api->state_name(sc_inst, TM_RENDERER_STATE_BLOCK_TYPE_TEXTURE_SAMPLER, 2);
+    tm_logger_api->printf(TM_LOG_TYPE_INFO, "name: %s", name);
+    sc_api->shutdown(sc_inst);
+#endif
     // app->shader_repository = tm_shader_repository_api->create(0, &app->allocator, app->render_backend,)
 
     // Create default window and initialize swap chain.
