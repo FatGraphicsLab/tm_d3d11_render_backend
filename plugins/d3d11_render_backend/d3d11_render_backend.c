@@ -308,16 +308,24 @@ d3d11__destroy_device(struct tm_d3d11_backend_o *inst)
 // -------------------------------------------------------------------
 // d3d11 shader_compiler
 
-static tm_renderer_shader_compiler_o *
+struct d3d11_shader_compiler_o
+{
+    struct tm_allocator_i *allocator;
+};
+
+static struct tm_renderer_shader_compiler_o *
 shader_compiler__init(struct tm_allocator_i *allocator)
 {
-    return 0;
+    struct d3d11_shader_compiler_o *o = tm_alloc(allocator, sizeof(*o));
+    o->allocator = allocator;
+    return (struct tm_renderer_shader_compiler_o *) o;
 }
 
 static void
 shader_compiler__shutdown(struct tm_renderer_shader_compiler_o *inst)
 {
-
+    struct d3d11_shader_compiler_o *o = (struct d3d11_shader_compiler_o *) inst;
+    tm_free(o->allocator, o, sizeof(*o));
 }
 
 static const uint32_t supported_block_types[] = {
@@ -452,11 +460,67 @@ shader_compiler__enum_value(struct tm_renderer_shader_compiler_o *inst, uint32_t
     }
 }
 
+static bool
+shader_compiler__bindless(struct tm_renderer_shader_compiler_o *inst)
+{
+    return false;
+}
+
+static tm_renderer_bindless_accessor_t
+shader_compiler__bindless_access_buffer(struct tm_renderer_shader_compiler_o *inst, uint32_t usage_flags)
+{
+    tm_renderer_bindless_accessor_t ba = {0};
+    return ba;
+}
+
+static tm_renderer_bindless_accessor_t
+shader_compiler__bindless_access_image(struct tm_renderer_shader_compiler_o *inst, uint32_t type,
+    uint32_t usage_flags)
+{
+    tm_renderer_bindless_accessor_t ba = { 0 };
+    return ba;
+}
+
+static tm_renderer_bindless_accessor_t
+shader_compiler__bindless_access_sampler(struct tm_renderer_shader_compiler_o *inst)
+{
+    tm_renderer_bindless_accessor_t ba = { 0 };
+    return ba;
+}
+
+static tm_renderer_bindless_accessor_t
+shader_compiler__bindless_access_acceleration_structure(struct tm_renderer_shader_compiler_o *inst)
+{
+    tm_renderer_bindless_accessor_t ba = { 0 };
+    return ba;
+}
+
+static struct tm_renderer_shader_blob_t
+shader_compiler__compile_state_block(struct tm_renderer_shader_compiler_o *inst, uint32_t bind_type,
+    uint32_t block_type, const tm_renderer_state_value_pair_t *states, uint32_t num_raster_states)
+{
+    struct tm_renderer_shader_blob_t blob = { 0 };
+    return blob;
+}
+
+static struct tm_renderer_shader_blob_t
+shader_compiler__compile_shader(struct tm_renderer_shader_compiler_o *inst, const char *source,
+    const char *entry_point, uint32_t source_language, uint32_t stage)
+{
+    struct tm_renderer_shader_blob_t blob = { 0 };
+    return blob;
+}
+
+static void
+shader_compiler__release_blob(struct tm_renderer_shader_compiler_o *inst, tm_renderer_shader_blob_t blob)
+{
+
+}
 
 static struct tm_renderer_shader_compiler_api d3d11_shader_compiler = {
     // Init & Shutdown
-    .init         = shader_compiler__init,
-    .shutdown     = shader_compiler__shutdown,
+    .init                  = shader_compiler__init,
+    .shutdown              = shader_compiler__shutdown,
 
     // State block key:value enumeration
     .num_state_block_types = shader_compiler__num_state_block_types,
@@ -468,6 +532,22 @@ static struct tm_renderer_shader_compiler_api d3d11_shader_compiler = {
     .num_values            = shader_compiler__num_values,
     .value_name            = shader_compiler__value_name,
     .enum_value            = shader_compiler__enum_value,
+
+    // State block compilation
+    .compile_state_block   = shader_compiler__compile_state_block,
+
+    // Shader compilation
+    .compile_shader        = shader_compiler__compile_shader,
+
+    // Bindless (D3D11 don't support)
+    .bindless                               = shader_compiler__bindless,
+    .bindless_access_buffer                 = shader_compiler__bindless_access_buffer,
+    .bindless_access_image                  = shader_compiler__bindless_access_image,
+    .bindless_access_sampler                = shader_compiler__bindless_access_sampler,
+    .bindless_access_acceleration_structure = shader_compiler__bindless_access_acceleration_structure,
+
+    // Common
+    .release_blob          = shader_compiler__release_blob,
 };
 
 // -------------------------------------------------------------------
