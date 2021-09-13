@@ -45,35 +45,39 @@ filter "configurations:Release"
     defines { "TM_CONFIGURATION_RELEASE" }
     optimize "On"
 
-project "d3d11_render_backend"
-    location "build/d3d11_render_backend"
-    kind "SharedLib"
-    targetname "tm_d3d11_render_backend"
-    files { "plugins/d3d11_render_backend/**.inl", "plugins/d3d11_render_backend/**.h", "plugins/d3d11_render_backend/**.c" }
-    targetdir "bin/%{cfg.buildcfg}/plugins"
-    filter "platforms:Win64"
-        links { "dxgi.lib", "dxguid.lib" }
+group "01-plugins"
+    project "d3d11_render_backend"
+        location "build/d3d11_render_backend"
+        kind "SharedLib"
+        targetname "tm_d3d11_render_backend"
+        files { "plugins/d3d11_render_backend/**.inl", "plugins/d3d11_render_backend/**.h", "plugins/d3d11_render_backend/**.c" }
+        targetdir "bin/%{cfg.buildcfg}/plugins"
+        filter "platforms:Win64"
+            links { "dxgi.lib", "dxguid.lib" }
 
-project "simple-triangle-dll"
-    location "build/simple_triangle_dll"
-    kind "SharedLib"
-    dependson { "d3d11_render_backend" }
-    files { "samples/simple_triangle/simple_triangle.h", "samples/simple_triangle/simple_triangle.c", "samples/simple_triangle/shaders/**.tmsl" }
-    filter "platforms:Win64"
-        links { "Shcore.lib" }
+group "02-tools"
+    project "simple-triangle-exe"
+        location "build/simple_triangle_exe"
+        targetname "simple-triangle"
+        kind "ConsoleApp"
+        defines { "TM_LINKS_FOUNDATION", "TM_LINKS_HOST" }
+        dependson { "simple-triangle-dll" }
+        files { "samples/simple_triangle/host.c", "samples/simple_triangle/host.inl" }
+        links { "foundation" }
+        filter { "platforms:Win64" }
+            postbuildcommands {
+                '{COPY} "%TM_SDK_DIR%/bin/plugins" ../../bin/%{cfg.buildcfg}/plugins'
+            }
 
-project "simple-triangle-exe"
-    location "build/simple_triangle_exe"
-    targetname "simple-triangle"
-    kind "ConsoleApp"
-    defines { "TM_LINKS_FOUNDATION", "TM_LINKS_HOST" }
-    dependson { "simple-triangle-dll" }
-    files { "samples/simple_triangle/host.c" }
-    links { "foundation" }
-    filter { "platforms:Win64" }
-        postbuildcommands {
-            '{COPY} "%TM_SDK_DIR%/bin/plugins" ../../bin/%{cfg.buildcfg}/plugins'
-        }
+    project "simple-triangle-dll"
+        location "build/simple_triangle_dll"
+        kind "SharedLib"
+        dependson { "d3d11_render_backend" }
+        files { "samples/simple_triangle/simple_triangle.h", "samples/simple_triangle/simple_triangle.c", "samples/simple_triangle/shaders/**.tmsl" }
+        filter "platforms:Win64"
+            links { "Shcore.lib" }
+
+
 
 --[[
 project "simple-triangle-exe"
