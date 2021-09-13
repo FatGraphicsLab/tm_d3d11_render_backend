@@ -55,7 +55,7 @@ group "01-plugins"
         filter "platforms:Win64"
             links { "dxgi.lib", "dxguid.lib" }
 
-group "02-tools"
+group "02-samples"
     project "simple-triangle-exe"
         location "build/simple_triangle_exe"
         targetname "simple-triangle"
