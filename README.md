@@ -13,6 +13,10 @@
 ## Reference
 
 * https://github.com/floooh/sokol
+* HLSL, FXC, and D3DCompile
+  * https://walbourn.github.io/hlsl-fxc-and-d3dcompile/
+* Getting Started with Direct3D 11
+  * https://walbourn.github.io/getting-started-with-direct3d-11/
 
 
 
